@@ -7,14 +7,6 @@
 
 using namespace std;
 
-template <typename T>
-void mySwap(T &a, T &b)
-{
-    T temp = a;
-    a = b;
-    b = temp;
-}
-
 class ProcessScheduling
 {
 private:
@@ -32,6 +24,13 @@ private:
     double avg_wt;
 
 public:
+    template <typename T>
+    void mySwap(T &a, T &b)
+    {
+        T temp = a;
+        a = b;
+        b = temp;
+    }
     void readFromFile(const string &filename)
     {
         ifstream file(filename);
@@ -63,7 +62,7 @@ public:
 
         file.close();
     }
-    void FCFS()
+    void sortProcess()
     {
         for (int i = 0; i < num_process; i++)
         {
@@ -78,6 +77,10 @@ public:
                 }
             }
         }
+    }
+    void FCFS()
+    {
+        sortProcess();
 
         int completion_time = arrival_time[0];
         for (int i = 0; i < num_process; i++)
@@ -100,6 +103,7 @@ public:
     }
     void RR()
     {
+        sortProcess();
     }
 
     void printFile(const string &filename)
