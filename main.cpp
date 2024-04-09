@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 using namespace std;
 
@@ -147,6 +148,109 @@ public:
         avg_wt /= num_process;
     }
 
+    static bool sortbysec(pair<int, int> a, pair<int, int> b)
+    {
+        return (a.second < b.second);
+    }
+
+    void SJF()
+    {
+        turnaround_time.resize(num_process);
+        waiting_time.resize(num_process);
+        sortProcess();
+        int completion_time = arrival_time[0];
+        vector<bool> done(num_process, false);
+        scheduling_chart.push_back(to_string(completion_time));
+        int shortest_index = -1;
+        vector<pair<int, int>> ready_list;
+        while (count(done.begin(), done.end(), false) > 0)
+        {
+            for (int i = 0; i < num_process; i++)
+            {
+                if (!done[i] && arrival_time[i] <= completion_time && find_if(ready_list.begin(), ready_list.end(), [i](const auto& pair) { return pair.first == i; }) == ready_list.end())
+                {
+                    ready_list.push_back(make_pair(i, cpu_burst[i]));
+                }
+            }
+
+            sort(ready_list.begin(), ready_list.end(), sortbysec);
+
+            shortest_index = ready_list[0].first;
+
+            scheduling_chart.push_back(name_process[shortest_index]);
+            completion_time += cpu_burst[shortest_index];
+            scheduling_chart.push_back(to_string(completion_time));
+            turnaround_time[shortest_index] = completion_time - arrival_time[shortest_index];
+            waiting_time[shortest_index] = (turnaround_time[shortest_index] - cpu_burst[shortest_index]);
+            avg_tt += turnaround_time[shortest_index];
+            avg_wt += waiting_time[shortest_index];
+            done[shortest_index] = true;
+            ready_list.erase(ready_list.begin());
+        }
+
+        avg_tt /= num_process;
+        avg_wt /= num_process;
+    }
+    
+    void Priority()
+    {
+        turnaround_time.resize(num_process);
+        waiting_time.resize(num_process);
+        vector<int> cpu_burst_left(cpu_burst);
+        int priority_index = 0;
+        int fst_priority = INT_MAX;
+        vector<bool> done(num_process, false);
+        sortProcess();
+        int completion_time = 0;
+        vector<pair<int, int>> ready_list;
+        ready_list.push_back(make_pair(0, priority[0]));
+        while (ready_list.size() < num_process)
+        {
+
+            for (int i = 0; i < num_process; ++i)
+            {
+                if (arrival_time[i] == completion_time)
+                {
+                    if (priority[i] < fst_priority)
+                    {
+                        int tmp = arrival_time[i] - arrival_time[ready_list.back().first];
+                        cpu_burst_left[ready_list.back().first] -= tmp;
+                        scheduling_chart.push_back(to_string(completion_time));
+                        scheduling_chart.push_back(name_process[i]);
+                        fst_priority = priority[i];
+                    }
+                    
+                    if (find_if(ready_list.begin(), ready_list.end(), [i](const auto& pair) { return pair.first == i; }) == ready_list.end())
+                    {
+                        ready_list.push_back(make_pair(i, priority[i]));
+                    }
+                    break;
+                }
+            }
+            ++completion_time;
+        }
+        --completion_time;
+        sort(ready_list.begin(), ready_list.end(), sortbysec);
+        scheduling_chart.pop_back();
+        
+        while (count(done.begin(), done.end(), false) > 0)
+        {
+            priority_index = ready_list[0].first;
+            completion_time += cpu_burst_left[priority_index];
+            scheduling_chart.push_back(name_process[priority_index]);
+            scheduling_chart.push_back(to_string(completion_time));
+            turnaround_time[priority_index] = completion_time - arrival_time[priority_index];
+            waiting_time[priority_index] = (turnaround_time[priority_index] - cpu_burst[priority_index]);
+            avg_tt += turnaround_time[priority_index];
+            avg_wt += waiting_time[priority_index];
+            done[priority_index] = true;
+            ready_list.erase(ready_list.begin());
+        }
+
+        avg_tt /= num_process;
+        avg_wt /= num_process;
+    }
+
     bool printFile(const string &filename)
     {
         ofstream file(filename);
@@ -224,10 +328,27 @@ int main()
             }
             break;
         case 3:
+            scheduler.SJF();
+            if (scheduler.printFile("SJF.txt"))
+                cout << "Task completed\n";
+            else
+            {
+                cout << "Failed to solve\n";
+                return 0;
+            }
             break;
 
         case 4:
+            scheduler.Priority();
+            if (scheduler.printFile("Priority.txt"))
+                cout << "Task completed\n";
+            else
+            {
+                cout << "Failed to solve\n";
+                return 0;
+            }
             break;
+            
         case 5:
             cout << "Exiting the program." << endl;
             return 0;
