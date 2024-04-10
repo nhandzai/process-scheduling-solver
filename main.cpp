@@ -43,6 +43,14 @@ public:
         }
         return true;
     }
+    void clearData()
+    {
+        scheduling_chart.clear();
+        turnaround_time.clear();
+        waiting_time.clear();
+        avg_tt = 0;
+        avg_wt = 0;
+    }
     bool readFromFile(const string &filename)
     {
         ifstream file(filename);
@@ -167,7 +175,8 @@ public:
         {
             for (int i = 0; i < num_process; i++)
             {
-                if (!done[i] && arrival_time[i] <= completion_time && find_if(ready_list.begin(), ready_list.end(), [i](const auto& pair) { return pair.first == i; }) == ready_list.end())
+                if (!done[i] && arrival_time[i] <= completion_time && find_if(ready_list.begin(), ready_list.end(), [i](const auto &pair)
+                                                                              { return pair.first == i; }) == ready_list.end())
                 {
                     ready_list.push_back(make_pair(i, cpu_burst[i]));
                 }
@@ -191,7 +200,7 @@ public:
         avg_tt /= num_process;
         avg_wt /= num_process;
     }
-    
+
     void Priority()
     {
         turnaround_time.resize(num_process);
@@ -219,8 +228,9 @@ public:
                         scheduling_chart.push_back(name_process[i]);
                         fst_priority = priority[i];
                     }
-                    
-                    if (find_if(ready_list.begin(), ready_list.end(), [i](const auto& pair) { return pair.first == i; }) == ready_list.end())
+
+                    if (find_if(ready_list.begin(), ready_list.end(), [i](const auto &pair)
+                                { return pair.first == i; }) == ready_list.end())
                     {
                         ready_list.push_back(make_pair(i, priority[i]));
                     }
@@ -232,7 +242,7 @@ public:
         --completion_time;
         sort(ready_list.begin(), ready_list.end(), sortbysec);
         scheduling_chart.pop_back();
-        
+
         while (count(done.begin(), done.end(), false) > 0)
         {
             priority_index = ready_list[0].first;
@@ -279,6 +289,7 @@ public:
         file << "Average:" << setw(6) << " " << fixed << setprecision(2)
              << "TT = " << setw(10) << avg_tt << " "
              << "WT " << setw(10) << avg_wt << endl;
+        clearData();
         return true;
     }
 };
@@ -348,7 +359,7 @@ int main()
                 return 0;
             }
             break;
-            
+
         case 5:
             cout << "Exiting the program." << endl;
             return 0;
