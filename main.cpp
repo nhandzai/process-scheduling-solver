@@ -205,71 +205,119 @@ public:
     {
         turnaround_time.resize(num_process);
         waiting_time.resize(num_process);
-        
-        int priority_index = 0;
-        int fst_priority = INT_MAX;
-        vector<bool> done(num_process, false);
-        sortProcess();
-        vector<int> cpu_burst_left(cpu_burst);
-        int completion_time = arrival_time[0];
-        vector<pair<int, int>> ready_list;
-        ready_list.push_back(make_pair(0, priority[0]));
-        while (ready_list.size() < num_process)
-        {
+        vector<bool> done(num_process, false); 
+        sortProcess(); 
+        vector<int> cpu_burst_left(cpu_burst); 
+        int completion_time = arrival_time[0]; 
+        vector<pair<int, int>> ready_list; 
+        int previous = 0; 
 
+        while (ready_list.size() < num_process) 
+        {
             for (int i = 0; i < num_process; ++i)
             {
-                if (arrival_time[i] == completion_time && find_if(ready_list.begin(), ready_list.end(), [i](const auto& pair)
-                    { return pair.first == i; }) == ready_list.end())
+                if (arrival_time[i] == completion_time)
                 {
                         ready_list.push_back(make_pair(i, priority[i]));
-                    
                 }
             }
-            int previous = 0;
-            sort(ready_list.begin(), ready_list.end(), sortbysec);
+            
+            sort(ready_list.begin(), ready_list.end(), sortbysec); 
+
+            if (ready_list.size() > 1 && priority[ready_list[0].first] != priority[ready_list[1].first])
+            {
+                for (int i = 0; i < ready_list.size() - 1; ++i)
+                {
+                    for (int j = i + 1; j < ready_list.size(); j++)
+                    {
+                        if (priority[ready_list[i].first] == priority[ready_list[j].first])
+                        {
+                            if (arrival_time[ready_list[i].first] > arrival_time[ready_list[j].first])
+                            {
+                                mySwap(ready_list[i], ready_list[j]);
+                            }
+
+                            else if (arrival_time[ready_list[i].first] == arrival_time[ready_list[j].first])
+                            {
+                                if (cpu_burst_left[ready_list[i].first] > cpu_burst_left[ready_list[j].first])
+                                {
+                                    mySwap(ready_list[i], ready_list[j]);
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            }
+            
             for (int i = 0; i < ready_list.size(); ++i)
             {
                 if (arrival_time[ready_list[i].first] < completion_time && !done[ready_list[i].first])
                 {
-                    previous = ready_list[i].first;
+                    previous= ready_list[i].first;
                     break;
                 }
             }
+
             for (int i = 0; i < ready_list.size(); ++i)
             {
-                if (arrival_time[ready_list[i].first] <= completion_time && priority[ready_list[i].first] < priority[previous] || ready_list.size() == 1)
+                if (!done[ready_list[i].first] && arrival_time[ready_list[i].first] <= completion_time && priority[ready_list[i].first] < priority[previous] || completion_time == arrival_time[0])
                 {
-                    int tmp = arrival_time[ready_list[i].first] - arrival_time[previous];
-                    cpu_burst_left[previous] -= tmp;
+                    if (completion_time != arrival_time[0])
+                        --cpu_burst_left[previous];
                     scheduling_chart.push_back(to_string(completion_time));
                     scheduling_chart.push_back(name_process[ready_list[i].first]);
-                    fst_priority = priority[ready_list[i].first];
+         
                     break;
                 }
-                else if (priority[ready_list[i].first] == priority[previous] && cpu_burst[previous] != 0)
+                else if (cpu_burst_left[ready_list[i].first] - 1 > 0 && priority[ready_list[i].first] == priority[previous])
                 {
                     --cpu_burst_left[previous];
+                    break;
+                }
+                else if (cpu_burst_left[ready_list[i].first] - 1 == 0)
+                {
+                    --cpu_burst_left[previous];
+                    
+                    done[previous] = true;
+                    turnaround_time[previous] = completion_time - arrival_time[previous];
+                    waiting_time[previous] = (turnaround_time[previous] - cpu_burst[previous]);
+                    avg_tt += turnaround_time[previous];
+                    avg_wt += waiting_time[previous];
+                    scheduling_chart.push_back(to_string(completion_time));
+                    for (int i = 0; i < ready_list.size(); ++i)
+                    {
+                        if (!done[ready_list[i].first])
+                        {
+                            scheduling_chart.push_back(name_process[ready_list[i].first]);
+                            break;
+                        }
+                    }
+                    break;
                 }
                 
             }
+            
             ++completion_time;
         }
-        --completion_time;
+        --completion_time; 
         
-        scheduling_chart.pop_back();
+        scheduling_chart.pop_back(); 
 
         while (count(done.begin(), done.end(), false) > 0)
         {
-            priority_index = ready_list[0].first;
-            completion_time += cpu_burst_left[priority_index];
-            scheduling_chart.push_back(name_process[priority_index]);
-            scheduling_chart.push_back(to_string(completion_time));
-            turnaround_time[priority_index] = completion_time - arrival_time[priority_index];
-            waiting_time[priority_index] = (turnaround_time[priority_index] - cpu_burst[priority_index]);
-            avg_tt += turnaround_time[priority_index];
-            avg_wt += waiting_time[priority_index];
-            done[priority_index] = true;
+            if (!done[ready_list[0].first])
+            {
+                completion_time += cpu_burst_left[ready_list[0].first];
+                scheduling_chart.push_back(name_process[ready_list[0].first]);
+                scheduling_chart.push_back(to_string(completion_time));
+                turnaround_time[ready_list[0].first] = completion_time - arrival_time[ready_list[0].first];
+                waiting_time[ready_list[0].first] = (turnaround_time[ready_list[0].first] - cpu_burst[ready_list[0].first]);
+                avg_tt += turnaround_time[ready_list[0].first];
+                avg_wt += waiting_time[ready_list[0].first];
+                done[ready_list[0].first] = true;
+            }
+            
             ready_list.erase(ready_list.begin());
         }
 
